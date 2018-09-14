@@ -7,8 +7,30 @@ typedef struct {
 } tStack;
 
 void stack_init(tStack *);
-signed long int stack_pop(tStack *);
-void stack_push(tStack *, signed long int);
-signed long int stack_peek(tStack *);
+
+inline signed long int stack_pop(tStack *st)
+{
+	if (st->top == 0) {
+		return 0;
+	} else {
+		return st->content[--st->top];
+	}
+}
+
+inline void stack_push(tStack *st, signed long int value)
+{
+	if (st->top < sizeof(st->content)) {
+		st->content[st->top++] = value;
+	}
+}
+
+inline signed long int stack_peek(tStack *st)
+{
+	if (st->top == 0) {
+		return 0;
+	} else {
+		return st->content[st->top - 1];
+	}
+}
+
 void stack_print(tStack *);
-/* vim: set ts=8 sw=4 tw=79 noet :*/
