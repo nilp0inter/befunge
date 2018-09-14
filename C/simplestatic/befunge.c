@@ -5,7 +5,6 @@
 #include "grid.h"
 #include "runtime.h"
 
-
 int main(int argc, char **argv)
 {
 	tRuntime rt;

@@ -8,7 +8,7 @@ typedef struct {
 
 void stack_init(tStack *);
 
-inline signed long int stack_pop(tStack *st)
+inline signed long int stack_pop(tStack * st)
 {
 	if (st->top == 0) {
 		return 0;
@@ -17,14 +17,14 @@ inline signed long int stack_pop(tStack *st)
 	}
 }
 
-inline void stack_push(tStack *st, signed long int value)
+inline void stack_push(tStack * st, signed long int value)
 {
 	if (st->top < sizeof(st->content)) {
 		st->content[st->top++] = value;
 	}
 }
 
-inline signed long int stack_peek(tStack *st)
+inline signed long int stack_peek(tStack * st)
 {
 	if (st->top == 0) {
 		return 0;
