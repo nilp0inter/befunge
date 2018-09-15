@@ -10,6 +10,7 @@ typedef struct {
 	unsigned short int width, height, y, x;
 	tDirection direction;
 	_Bool stringmode;
+	_Bool halt;
 	tGrid grid;
 	tStack stack;
 } tRuntime;

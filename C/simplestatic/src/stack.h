@@ -1,5 +1,5 @@
 #pragma once
-#define STACK_SIZE 128
+#define STACK_SIZE 1024
 
 typedef struct {
 	signed long int content[STACK_SIZE];

@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "grid.h"
 
 void grid_init(tGrid grid)
 {
-	for (int y = 0; y < COL_SIZE; y++)
-		for (int x = 0; x < ROW_SIZE; x++)
-			grid[y][x] = ' ';
+	memset((void *)grid, ' ', COL_SIZE * ROW_SIZE);
+	/* for (int y = 0; y < COL_SIZE; y++) */
+	/* 	for (int x = 0; x < ROW_SIZE; x++) */
+	/* 		grid[y][x] = ' '; */
 }
 
 void grid_put(tGrid grid, char v, unsigned long int x, unsigned long int y)
@@ -20,9 +22,12 @@ void grid_print(tGrid grid)
 {
 	for (int y = 0; y < COL_SIZE; y++) {
 		for (int x = 0; x < ROW_SIZE; x++) {
-			fprintf(stderr, "%c", grid[y][x]);
+			if (!isprint(grid[y][x]))
+				putc('.', stderr);
+			else
+				putc(grid[y][x], stderr);
 		}
-		fprintf(stderr, "\n");
+		putc('\n', stderr);
 	}
 }
 

@@ -15,6 +15,7 @@ void rt_init(tRuntime * rt)
 	rt->x = rt->y = 0;
 	rt->direction = RIGHT;
 	rt->stringmode = false;
+	rt->halt = false;
 	grid_init(rt->grid);
 	stack_init(&rt->stack);
 }
@@ -30,18 +31,18 @@ int rt_fload(tRuntime * rt, char const *path)
 	return 0;
 }
 
-inline char rt_get_cell_at(tRuntime * rt, unsigned short int x,
+char rt_get_cell_at(tRuntime * rt, unsigned short int x,
 			   unsigned short int y)
 {
 	return rt->grid[y][x];
 }
 
-inline char rt_get_cell(tRuntime * rt)
+char rt_get_cell(tRuntime * rt)
 {
 	return rt->grid[rt->y][rt->x];
 }
 
-inline void rt_next(tRuntime * rt)
+void rt_next(tRuntime * rt)
 {
 	switch (rt->direction) {
 	case UP:
@@ -63,14 +64,14 @@ inline void rt_next(tRuntime * rt)
 	}
 }
 
-inline void rt_step(tRuntime * rt)
+void rt_step(tRuntime * rt)
 {
 
 #define POP() stack_pop(&rt->stack)
 #define PUSH(v) stack_push(&rt->stack, v)
 
 	char op = rt_get_cell(rt);
-	unsigned long int v1, v2;
+	unsigned long int a, b;
 
 	if (rt->stringmode) {
 		if (op == '"')
@@ -98,13 +99,13 @@ inline void rt_step(tRuntime * rt)
 			// . (pop)         <value>
 			// outputs <value> as integer
 		case '.':
-			printf("%ld", POP());
+			printf("%ld ", POP());
 			break;
 
 			// , (pop)         <value>
 			// outputs <value> as ASCII
 		case ',':
-			fprintf(stdout, "%c", (char)POP());
+			putchar((char)POP());
 			break;
 
 			// + (add)         <value1> <value2>
@@ -116,9 +117,9 @@ inline void rt_step(tRuntime * rt)
 			// - (subtract)    <value1> <value2>
 			// <value1 - value2>
 		case '-':
-			v1 = POP();
-			v2 = POP();
-			PUSH(v2 - v1);
+			a = POP();
+			b = POP();
+			PUSH(b - a);
 			break;
 
 			// * (multiply)    <value1> <value2>
@@ -130,19 +131,19 @@ inline void rt_step(tRuntime * rt)
 			// / (divide)      <value1> <value2>
 			// <value1 / value2> (nb. integer)
 		case '/':
-			v1 = POP();
-			v2 = POP();
-			assert(v1 != 0);
-			PUSH(v2 / v1);
+			a = POP();
+			b = POP();
+			assert(a != 0);
+			PUSH(b / a);
 			break;
 
 			// % (modulo)      <value1> <value2>
 			// <value1 mod value2>
 		case '%':
-			v1 = POP();
-			v2 = POP();
-			assert(v1 != 0);
-			PUSH(v2 % v1);
+			a = POP();
+			b = POP();
+			assert(a != 0);
+			PUSH(b % a);
 			break;
 
 			// > (right)
@@ -190,10 +191,10 @@ inline void rt_step(tRuntime * rt)
 			// \ (swap)        <value1> <value2>
 			// <value2> <value1>
 		case '\\':
-			v1 = POP();
-			v2 = POP();
-			PUSH(v1);
-			PUSH(v2);
+			a = POP();
+			b = POP();
+			PUSH(a);
+			PUSH(b);
 			break;
 
 			// # (bridge)
@@ -205,34 +206,35 @@ inline void rt_step(tRuntime * rt)
 			// g (get)         <x> <y>
 			// <value at (x,y)>
 		case 'g':
-			PUSH((unsigned long int)rt_get_cell_at(rt, POP(),	// x
-							       POP()));	// y
+			a = POP(); // y
+			b = POP(); // x
+			PUSH((unsigned long int)rt_get_cell_at(rt, b, a));
 			break;
 
 			// p (put)         <value> <x> <y>
 			// puts <value> at (x,y)
 		case 'p':
-			grid_put(rt->grid, POP(),	// value
-				 POP(),	// x
-				 POP());	// y
+			a = POP(); // y
+			b = POP(); // x
+			grid_put(rt->grid, POP(), b, a);
 			break;
 
 			// @ (end)
 			// ends program
 		case '@':
-			exit(0);
-			break;
+			rt->halt = true;
+			return;
 
 			// ! (not)         <value>
 			// <0 if value non-zero, 1 otherwise>
 		case '!':
-			PUSH(POP()? 1 : 0);
+			PUSH(POP() ? 0 : 1);
 			break;
 
 			// ` (greater)     <value1> <value2>
 			// <1 if value1 > value2, 0 otherwise>
 		case '`':
-			PUSH(POP() > POP()? 1 : 0);
+			PUSH(POP() > POP());
 			break;
 
 			// ? (random)
@@ -282,6 +284,13 @@ inline void rt_step(tRuntime * rt)
 
 void rt_exec(tRuntime * rt)
 {
-	for (;;)
+	/* grid_print(rt->grid); */
+	for (unsigned long int c=0; !rt->halt; c++) {
 		rt_step(rt);
+		/* if (c % 10000 == 0) { */
+		/* 	system("clear"); */
+		/* 	grid_print(rt->grid); */
+		/* } */
+	}
+	/* stack_print(&rt->stack); */
 }
