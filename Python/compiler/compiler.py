@@ -14,10 +14,11 @@ WIDTH = 80
 
 
 class Direction(enum.Enum):
+    WHATEVER = None
     UP = '^'
-    RIGHT = '>'
     DOWN = 'v'
     LEFT = '<'
+    RIGHT = '>'
 
     @classmethod
     def valid(cls, value):
@@ -41,10 +42,10 @@ class CODE:
 
 @dataclasses.dataclass(frozen=True)
 class BRANCH:
-    up: typing.Union[JUMP, 'CELL', None] = dataclasses.field(default=None)
-    right: typing.Union[JUMP, 'CELL', None] = dataclasses.field(default=None)
-    down: typing.Union[JUMP, 'CELL', None] = dataclasses.field(default=None)
-    left: typing.Union[JUMP, 'CELL', None] = dataclasses.field(default=None)
+    up: typing.Union[JUMP, CODE, None] = dataclasses.field(default=None)
+    down: typing.Union[JUMP, CODE, None] = dataclasses.field(default=None)
+    left: typing.Union[JUMP, CODE, None] = dataclasses.field(default=None)
+    right: typing.Union[JUMP, CODE, None] = dataclasses.field(default=None)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,16 +55,15 @@ class CELL:
     y: int
     stringmode: bool
     content: str
-    next: typing.Union[BRANCH, JUMP, 'CELL', None] = dataclasses.field(
-                                                default=None,
-                                                hash=False)
+    next: typing.Union[BRANCH, JUMP, 'CELL', None] =\
+        dataclasses.field(default=None, hash=False, compare=False)
 
     @property
     def label(s):
         if s.stringmode:
             return None
         else:
-            return f"L_{s.direction}_{s.x}_{s.y}"
+            return f"L_{s.direction.name}_{s.x}_{s.y}"
 
 
 class Grid(dict):
@@ -112,103 +112,115 @@ class CodeTree:
                  x=0,
                  y=0,
                  stringmode=False,
-                 content=None))
+                 content=self.grid[(0, 0)]))
 
     def _next(self, cell):
         if cell.stringmode:
             x, y, c = self.grid.nextto(cell.x, cell.y, cell.direction)
-            # TODO yield
-            return CELL(direction=cell.direction,  # same direction
-                        x=x,
-                        y=y,
-                        stringmode=cell.content != '"',  # toggle on \"
-                        content=c)
+            return CELL(
+                direction=cell.direction,  # same direction
+                x=x,
+                y=y,
+                stringmode=cell.content != '"',  # toggle on \"
+                content=c)
         elif cell.content == '"':
             x, y, c = self.grid.nextto(cell.x, cell.y, cell.direction)
-            return CELL(direction=cell.direction,
-                        x=x,
-                        y=y,
-                        stringmode=True,  # toggle on \"
-                        content=c)
+            return CELL(
+                direction=cell.direction if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=True,  # toggle on \"
+                content=c)
         elif Direction.valid(cell.content):
             newdirection = Direction(cell.content)
             x, y, c = self.grid.nextto(cell.x, cell.y, newdirection)
-            return CELL(direction=newdirection,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            return CELL(
+                direction=newdirection if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
         elif cell.content == '_':
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.LEFT)
-            left = CELL(direction=Direction.LEFT,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            left = CELL(
+                direction=Direction.LEFT if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.RIGHT)
-            right = CELL(direction=Direction.RIGHT,
-                         x=x,
-                         y=y,
-                         stringmode=False,  # toggle on \"
-                         content=c)
+            right = CELL(
+                direction=Direction.RIGHT if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             return BRANCH(left=left, right=right)
         elif cell.content == '|':
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.UP)
-            up = CELL(direction=Direction.UP,
-                      x=x,
-                      y=y,
-                      stringmode=False,  # toggle on \"
-                      content=c)
+            up = CELL(
+                direction=Direction.UP if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.DOWN)
-            down = CELL(direction=Direction.DOWN,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            down = CELL(
+                direction=Direction.DOWN if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             return BRANCH(up=up, down=down)
         elif cell.content == '?':
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.UP)
-            up = CELL(direction=Direction.UP,
-                      x=x,
-                      y=y,
-                      stringmode=False,  # toggle on \"
-                      content=c)
-            x, y, c = self.grid.nextto(cell.x, cell.y, Direction.RIGHT)
-            right = CELL(direction=Direction.RIGHT,
-                         x=x,
-                         y=y,
-                         stringmode=False,  # toggle on \"
-                         content=c)
+            up = CELL(
+                direction=Direction.UP if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.DOWN)
-            down = CELL(direction=Direction.DOWN,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            down = CELL(
+                direction=Direction.DOWN if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             x, y, c = self.grid.nextto(cell.x, cell.y, Direction.LEFT)
-            left = CELL(direction=Direction.LEFT,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            left = CELL(
+                direction=Direction.LEFT if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
+            x, y, c = self.grid.nextto(cell.x, cell.y, Direction.RIGHT)
+            right = CELL(
+                direction=Direction.RIGHT if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
             return BRANCH(up=up, right=right, down=down, left=left)
         elif cell.content == '#':
             x, y, c = self.grid.nextto(cell.x, cell.y, cell.direction)
             x, y, c = self.grid.nextto(x, y, cell.direction)
-            return CELL(direction=cell.direction,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            return CELL(
+                direction=cell.direction if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
         elif cell.content == '@':
             return None
         else:
             x, y, c = self.grid.nextto(cell.x, cell.y, cell.direction)
-            return CELL(direction=cell.direction,
-                        x=x,
-                        y=y,
-                        stringmode=False,  # toggle on \"
-                        content=c)
+            return CELL(
+                direction=cell.direction if c != '@' else Direction.WHATEVER,
+                x=x,
+                y=y,
+                stringmode=False,  # toggle on \"
+                content=c)
 
     def _walk(self, cell):
         if cell not in self.visited:
@@ -216,19 +228,25 @@ class CodeTree:
             n = self._next(cell)
             if n is None:
                 # End of the program
-                return None
+                return CODE(cell)
             elif isinstance(n, CELL):
                 return CODE(dataclasses.replace(cell, next=self._walk(n)))
             elif isinstance(n, BRANCH):
-                return dataclasses.replace(
+                n = dataclasses.replace(
                     n,
                     up=self._walk(n.up) if n.up is not None else None,
-                    right=self._walk(n.right) if n.right is not None else None,
                     down=self._walk(n.down) if n.down is not None else None,
-                    left=self._walk(n.left) if n.left is not None else None)
+                    left=self._walk(n.left) if n.left is not None else None,
+                    right=self._walk(n.right) if n.right is not None else None)
+                return CODE(dataclasses.replace(cell, next=n))
         else:
             self.destinations.add(cell)
             return JUMP(cell)
+
+
+i64 = ir.IntType(64)
+stacktype = ir.ArrayType(i64, 1000)
+ft = ir.FunctionType(i64, ())
 
 
 class LLVMBuilder:
@@ -237,39 +255,218 @@ class LLVMBuilder:
         self.tree = tree
 
         self.module = ir.Module(name=name)
-        main = ir.Function(module, ft, "main")
+
+        # External functions
+        self._f_putchar = ir.Function(
+            self.module,
+            ir.FunctionType(ir.IntType(64), [ir.IntType(64)]),
+            'putchar')
+
+        main = ir.Function(self.module, ft, 'main')
         builder = self._add_block(main, 'code')
-        self._build_branch(builder, tree)
+
+        # Global variables
+        self._v_stack_ptr = builder.alloca(stacktype, size=1000, name='stack')
+        self._v_sp_ptr = builder.alloca(i64, name='sp')
+        builder.store(i64(0), self._v_sp_ptr)
+        self._v_a_ptr = builder.alloca(i64, name='a')
+        self._v_b_ptr = builder.alloca(i64, name='b')
+        self._v_c_ptr = builder.alloca(i64, name='x')
+
+        self._build_branch(builder, tree.tree)
+
+        try:
+            builder.ret_void()
+        except AssertionError:
+            pass
 
     def _add_block(self, builder, name):
         block = builder.append_basic_block(name)
         self.blocks[name] = block
-        return ir.IRBuilder(block)
+        builder = ir.IRBuilder(block)
+        return builder
 
-    def _build_instruction(self, builder, head, tail):
-        pass
+    def _pop_to(self, builder, dst_ptr=None):
+        sp = builder.load(self._v_sp_ptr)
+        prep = builder.icmp_unsigned('==', sp, i64(0))
+        with builder.if_else(prep) as (then, otherwise):
+            with then:
+                if dst_ptr is not None:
+                    builder.store(i64(0), dst_ptr)
+            with otherwise:
+                sp = builder.sub(sp, i64(1))
+                elem_addr = builder.gep(self._v_stack_ptr, [sp])
+                elem = builder.load(builder.bitcast(elem_addr, i64.as_pointer()))
+                builder.store(elem, dst_ptr)
+                builder.store(sp, self._v_sp_ptr)
+
+    def _peek_to(self, builder, dst_ptr):
+        sp = builder.load(self._v_sp_ptr)
+        prep = builder.icmp_unsigned('==', sp, i64(0))
+        with builder.if_else(prep) as (then, otherwise):
+            with then:
+                builder.store(i64(0), dst_ptr)
+            with otherwise:
+                sp = builder.sub(sp, i64(1))
+                elem_addr = builder.gep(self._v_stack_ptr, [sp])
+                elem = builder.load(builder.bitcast(elem_addr, i64.as_pointer()))
+                builder.store(elem, dst_ptr)
+
+    def _push_from(self, builder, src_ptr):
+        sp = builder.load(self._v_sp_ptr)
+        elem_addr = builder.gep(self._v_stack_ptr, [sp])
+        value = builder.load(src_ptr)
+        builder.store(value, builder.bitcast(elem_addr, i64.as_pointer()))
+        builder.store(builder.add(sp, i64(1)), self._v_sp_ptr)
+
+    def _push_value(self, builder, value):
+        sp = builder.load(self._v_sp_ptr)
+        elem_addr = builder.gep(self._v_stack_ptr, [sp])
+        builder.store(value, builder.bitcast(elem_addr, i64.as_pointer()))
+        builder.store(builder.add(sp, i64(1)), self._v_sp_ptr)
+
+    def _build_instruction(self, builder, cell):
+        if cell.stringmode:
+            if cell.content != '"':
+                self._push_value(builder, i64(ord(cell.content)))
+        elif cell.content in '0123456789':
+            self._push_value(builder, i64(int(cell.content)))
+        elif cell.content == '+':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            self._push_value(builder, builder.add(a, b))
+        elif cell.content == '-':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            self._push_value(builder, builder.sub(a, b))
+        elif cell.content == '*':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            self._push_value(builder, builder.mul(a, b))
+        elif cell.content == '/':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            self._push_value(builder, builder.sdiv(a, b))
+        elif cell.content == '%':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            self._push_value(builder, builder.srem(a, b))
+        elif cell.content == '`':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            a = builder.load(self._v_a_ptr)
+            b = builder.load(self._v_b_ptr)
+            prep = builder.icmp_unsigned('>', a, b)
+            with builder.if_else(prep) as (then, otherwise):
+                with then:
+                    self._push_value(builder, i64(1))
+                with otherwise:
+                    self._push_value(builder, i64(0))
+        elif cell.content == '&':
+            pass
+        elif cell.content == '~':
+            pass
+        elif cell.content == '.':
+            pass
+        elif cell.content == ',':
+            self._pop_to(builder, self._v_a_ptr)
+            a = builder.load(self._v_a_ptr)
+            builder.call(self._f_putchar, [a])
+        elif cell.content == ':':
+            self._peek_to(builder, self._v_a_ptr)
+            self._push_from(builder, self._v_a_ptr)
+        elif cell.content == '\\':
+            self._pop_to(builder, self._v_a_ptr)
+            self._pop_to(builder, self._v_b_ptr)
+            self._push_from(builder, self._v_a_ptr)
+            self._push_from(builder, self._v_b_ptr)
+        elif cell.content == '!':
+            self._pop_to(builder, self._v_a_ptr)
+            a = builder.load(self._v_a_ptr)
+            prep = builder.icmp_unsigned('==', i64(0), a)
+            with builder.if_else(prep) as (then, otherwise):
+                with then:
+                    self._push_value(builder, i64(1))
+                with otherwise:
+                    self._push_value(builder, i64(0))
+        elif cell.content in '_|':
+            # Branches
+            if cell.content == '_':
+                then_code = cell.next.left
+                else_code = cell.next.right
+            else:
+                then_code = cell.next.up
+                else_code = cell.next.down
+
+            prep = builder.icmp_unsigned('==', i64(0), i64(0))
+            with builder.if_else(prep) as (then_block, else_block):
+                with then_block:
+                    self._build_branch(builder, then_code)
+                with else_block:
+                    self._build_branch(builder, else_code)
+        elif cell.content == '?':
+            up = self._add_block(builder, f"{cell.label}_UP")
+            self._build_branch(up, cell.next.up)
+            down = self._add_block(builder, f"{cell.label}_DOWN")
+            self._build_branch(down, cell.next.down)
+            left = self._add_block(builder, f"{cell.label}_LEFT")
+            self._build_branch(left, cell.next.left)
+            right = self._add_block(builder, f"{cell.label}_RIGHT")
+            self._build_branch(right, cell.next.right)
+
+            switch = builder.switch(i64(0), right.block)
+            switch.add_case(i64(0), up.block)
+            switch.add_case(i64(1), down.block)
+            switch.add_case(i64(2), left.block)
+        elif cell.content == '$':
+            self._pop_to(builder)
+        elif cell.content == '@':
+            try:
+                builder.ret(i64(0))
+            except AssertionError:
+                # Closed already?
+                # print(f"CLOSED {cell.x} {cell.y}")
+                pass
+        elif cell.content in 'pg':
+            raise ValueError('p & g are not allowed')
+        else:
+            # print("Skipping %r" % cell.content)
+            pass
 
     def _build_branch(self, builder, tree):
-        if not tree:
-            return
+        if isinstance(tree, CODE):
+            if tree.cell in self.tree.destinations:
+                newbuilder = self._add_block(builder, tree.cell.label)
+                try:
+                    builder.branch(self.blocks[tree.cell.label])  # Implicit jump
+                except AssertionError:
+                    # Closed already?
+                    # print(f"CLOSED {tree.cell.x} {tree.cell.y}")
+                    pass
+                builder = newbuilder
+            self._build_instruction(builder, tree.cell)
+            if not isinstance(tree.cell.next, BRANCH):
+                # Because is already built by instruction
+                self._build_branch(builder, tree.cell.next)
+        elif isinstance(tree, JUMP):
+            try:
+                builder.branch(self.blocks[tree.cell.label])
+            except:
+                pass
+        elif tree is None:
+            pass
         else:
-            head, *tail = tree
-            if isinstance(head, CELL):
-                if head in self.tree.destinations:
-                    builder = self._add_block(builder, head.label)
-                self._build_instruction(builder, head, tail)
-                self._build_branch(tail)
-            elif isinstance(head, JUMP):
-                builder.branch(self.blocks[head.label])
-            else:
-                return
-
-
-def tree2module(tree, name):
-    i32 = ir.IntType(32)
-    ft = ir.FunctionType(i32, ())
-
-    build
+            raise ValueError('Invalid continuation %r' % type(tree))
 
 
 if __name__ == '__main__':
@@ -277,5 +474,7 @@ if __name__ == '__main__':
         code = fp.read()
         grid = Grid(code)
         tree = CodeTree(grid)
-        pprint(tree.tree)
-        pprint(tree.destinations)
+        # pprint(tree.tree)
+        # pprint(tree.destinations)
+        builder = LLVMBuilder(tree, 'mymodule')
+        print(builder.module)
