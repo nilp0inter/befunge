@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -41,8 +43,8 @@ func (s *Stack) Push(e byte) {
 		s.elems = append(s.elems, e)
 		s.top += 1
 	} else {
-		s.top += 1
 		s.elems[s.top] = e
+		s.top += 1
 	}
 }
 
@@ -176,7 +178,7 @@ func (s *State) Step() {
 		case byte('.'):
 			fmt.Printf("%d", s.Stack.Pop())
 		case byte(','):
-			fmt.Printf("%+q", s.Stack.Pop())
+			fmt.Printf("%s", string(s.Stack.Pop()))
 		case byte('#'):
 			s.Advance()
 		case byte('g'):
@@ -223,9 +225,17 @@ func (s *State) Step() {
 	}
 }
 
+func clear() {
+	cmd := exec.Command("clear") //Linux example, its tested
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
 func (s *State) Debug() {
+	clear()
 	for {
-		fmt.Println(s.X, s.Y)
+		fmt.Print("\033[;H") // Move the cursor to top left
+		fmt.Print(s)
 		s.Step()
 	}
 }
@@ -236,6 +246,18 @@ func main() {
 		fmt.Println("Usage:", os.Args[0], "<program>")
 		os.Exit(1)
 	}
+	content, err := ioutil.ReadFile(os.Args[1])
+	if err != nil {
+		os.Exit(1)
+	}
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		if i >= HEIGHT {
+			break
+		}
+		copy(state.Grid[i][:WIDTH], []byte(line[:]))
+	}
+
 	rand.Seed(time.Now().UnixNano())
 	state.Debug()
 }
