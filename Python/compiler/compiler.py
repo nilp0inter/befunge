@@ -523,5 +523,5 @@ if __name__ == '__main__':
         tree = CodeTree(grid)
         # with open(sys.argv[1] + '.tree', 'wb') as tdump:
         #     pickle.dump(tree.tree, tdump)
-        builder = LLVMBuilder(tree, 'mymodule', safe_stack=False, stack_size=3)
+        builder = LLVMBuilder(tree, 'mymodule', safe_stack=False, stack_size=128)
         print(builder.module)
