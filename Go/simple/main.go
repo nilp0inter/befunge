@@ -75,14 +75,18 @@ func (s *State) Advance() {
 		s.X = (s.X + 1) % WIDTH
 	case Down:
 		s.Y = (s.Y + 1) % HEIGHT
-	case Left && s.X == 0:
-		s.X = WIDTH - 1
 	case Left:
-		s.X -= 1
-	case Up && s.Y == 0:
-		s.Y = HEIGHT - 1
+		if s.X == 0 {
+			s.X = WIDTH - 1
+		} else {
+			s.X -= 1
+		}
 	case Up:
-		s.Y -= 1
+		if s.Y == 0 {
+			s.Y = HEIGHT - 1
+		} else {
+			s.Y -= 1
+		}
 	}
 }
 
