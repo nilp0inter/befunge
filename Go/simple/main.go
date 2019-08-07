@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 type Direction int
 
 const (
-	Right = iota
+	Right Direction = iota
 	Down
 	Left
 	Up
@@ -103,21 +105,119 @@ func (s *State) Step() {
 		}
 		s.Advance()
 	} else {
-		switch s.Fetch() {
+		cell := s.Fetch()
+		switch cell {
+		case byte('+'):
+			s.Stack.Push(s.Stack.Pop() + s.Stack.Pop())
+		case byte('-'):
+			a := s.Stack.Pop()
+			b := s.Stack.Pop()
+			s.Stack.Push(b - a)
+		case byte('*'):
+			s.Stack.Push(s.Stack.Pop() * s.Stack.Pop())
+		case byte('/'):
+			a := s.Stack.Pop()
+			b := s.Stack.Pop()
+			s.Stack.Push(b / a)
+		case byte('%'):
+			a := s.Stack.Pop()
+			b := s.Stack.Pop()
+			s.Stack.Push(b % a)
+		case byte('!'):
+			if a := s.Stack.Pop(); a == 0 {
+				s.Stack.Push(1)
+			} else {
+				s.Stack.Push(0)
+			}
+		case byte('`'):
+			a := s.Stack.Pop()
+			b := s.Stack.Pop()
+			if b > a {
+				s.Stack.Push(1)
+			} else {
+				s.Stack.Push(0)
+			}
 		case byte('>'):
 			s.Dir = Right
-		case byte('v'):
-			s.Dir = Down
 		case byte('<'):
 			s.Dir = Left
 		case byte('^'):
 			s.Dir = Up
+		case byte('v'):
+			s.Dir = Down
+		case byte('?'):
+			dirs := []Direction{Right, Down, Left, Up}
+			s.Dir = dirs[rand.Intn(len(dirs))]
+		case byte('_'):
+			if s.Stack.Pop() == 0 {
+				s.Dir = Right
+			} else {
+				s.Dir = Left
+			}
+		case byte('|'):
+			if s.Stack.Pop() == 0 {
+				s.Dir = Down
+			} else {
+				s.Dir = Up
+			}
 		case byte('"'):
 			s.Ascii = true
+		case byte(':'):
+			a := s.Stack.Pop()
+			s.Stack.Push(a)
+			s.Stack.Push(a)
+		case byte('\\'):
+			a := s.Stack.Pop()
+			b := s.Stack.Pop()
+			s.Stack.Push(a)
+			s.Stack.Push(b)
+		case byte('$'):
+			s.Stack.Pop()
 		case byte('.'):
-			fmt.Printf("%+q", s.Stack.Pop())
-		case byte(','):
 			fmt.Printf("%d", s.Stack.Pop())
+		case byte(','):
+			fmt.Printf("%+q", s.Stack.Pop())
+		case byte('#'):
+			s.Advance()
+		case byte('g'):
+			y := s.Stack.Pop()
+			x := s.Stack.Pop()
+			if x < WIDTH && y < HEIGHT {
+				s.Stack.Push(s.Grid[y][x])
+			} else {
+				s.Stack.Push(0)
+			}
+		case byte('p'):
+			y := s.Stack.Pop()
+			x := s.Stack.Pop()
+			v := s.Stack.Pop()
+			if x < WIDTH && y < HEIGHT {
+				s.Grid[y][x] = v
+			}
+		case byte('&'):
+			var i byte
+			for {
+				_, err := fmt.Scanf("%d", &i)
+				if err != nil {
+					break
+				}
+			}
+			s.Stack.Push(i)
+		case byte('~'):
+			var i byte
+			for {
+				_, err := fmt.Scanf("%c", &i)
+				if err != nil {
+					break
+				}
+			}
+			s.Stack.Push(i)
+		case byte('@'):
+			os.Exit(0)
+		default:
+			if cell >= byte('0') && cell <= byte('9') {
+				s.Stack.Push(cell - byte('0'))
+			}
 		}
 		s.Advance()
 	}
@@ -136,21 +236,6 @@ func main() {
 		fmt.Println("Usage:", os.Args[0], "<program>")
 		os.Exit(1)
 	}
+	rand.Seed(time.Now().UnixNano())
 	state.Debug()
-
-	// state.Dir = Up
-	// for i := 0; i < 100; i++ {
-	// 	fmt.Println(state.X, state.Y)
-	// 	state.Advance()
-	// }
-
-	// fmt.Println(state.Stack)
-	// fmt.Println(state.Stack.Pop())
-	// state.Stack.Push(byte(5))
-	// fmt.Println(state.Stack)
-	// state.Stack.Push(byte(10))
-	// fmt.Println(state.Stack)
-	// fmt.Println(state.Stack.Pop())
-	// fmt.Println(state.Stack.Pop())
-	// fmt.Println(state.Stack.Pop())
 }
